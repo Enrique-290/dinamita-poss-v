@@ -38,6 +38,72 @@
 
   function uniq(arr){ return Array.from(new Set(arr)); }
 
+  function sanitizeLabel(s){
+    return String(s||"")
+      .replaceAll("dÃ­as","días")
+      .replaceAll("piÃ±a","piña")
+      .replaceAll("higenico","higiénico")
+      .trim();
+  }
+
+  function productFamily(name, category=""){
+    const n = sanitizeLabel(name).toLowerCase();
+    const c = sanitizeLabel(category).toLowerCase();
+    const map = [
+      ["bonafont","Bonafont"],
+      ["gatorade","Gatorade"],
+      ["volt","Volt"],
+      ["electrolit","Electrolit"],
+      ["monster","Monster"],
+      ["psychotic","Psychotic"],
+      ["deli barras","Deli barras"],
+      ["delai barras","Deli barras"],
+      ["barras muscle sandwich","Barras Muscle Sandwich"],
+      ["toma de","Tomas"],
+      ["cafe","Café"],
+      ["toalla","Toallas"],
+      ["toallas","Toallas"]
+    ];
+    for(const [k,v] of map){ if(n.startsWith(k)) return v; }
+    if(c && c !== 'sin categoría' && c !== 'membresías' && c !== 'servicios') return sanitizeLabel(category);
+    const firstTwo = sanitizeLabel(name).split(/\s+/).slice(0,2).join(' ').trim();
+    const first = sanitizeLabel(name).split(/\s+/)[0] || 'Productos';
+    return firstTwo.length <= 18 ? firstTwo : first;
+  }
+
+  function buildOperationalData(rows){
+    const memberships = new Map();
+    const families = new Map();
+    let membershipTotal = 0, productsTotal = 0;
+    for(const r of rows){
+      if(r.kind === 'membresia'){
+        const key = sanitizeLabel(r.product);
+        if(!memberships.has(key)) memberships.set(key, {name:key, qty:0, total:0});
+        const item = memberships.get(key);
+        item.qty += Number(r.qty||0);
+        item.total += Number(r.total||0);
+        membershipTotal += Number(r.total||0);
+      }else if(r.kind === 'venta'){
+        const fam = productFamily(r.product, r.category);
+        if(!families.has(fam)) families.set(fam, new Map());
+        const byProduct = families.get(fam);
+        const key = sanitizeLabel(r.product);
+        if(!byProduct.has(key)) byProduct.set(key, {name:key, qty:0, total:0});
+        const item = byProduct.get(key);
+        item.qty += Number(r.qty||0);
+        item.total += Number(r.total||0);
+        productsTotal += Number(r.total||0);
+      }
+    }
+    const membershipList = Array.from(memberships.values()).sort((a,b)=>a.name.localeCompare(b.name));
+    const familyList = Array.from(families.entries()).map(([family, map])=>{
+      const items = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name));
+      const subtotal = items.reduce((a,b)=>a+Number(b.total||0),0);
+      return { family, items, subtotal };
+    }).sort((a,b)=>b.subtotal-a.subtotal || a.family.localeCompare(b.family));
+    return { membershipList, familyList, membershipTotal, productsTotal, grandTotal: membershipTotal + productsTotal };
+  }
+
   function loadCategories(){
     const st = state();
     const cats = uniq((st.products||[]).map(p=>p.category).filter(Boolean)).sort((a,b)=>a.localeCompare(b));
@@ -106,6 +172,59 @@
     // Apply category filter only to relevant views
     if(cat){
       currentRows = currentRows.filter(r => (r.category||"") === cat);
+    }
+
+    if(type === "operativo"){
+      rTitle.textContent = "Super reporte operativo";
+      rSubtitle.textContent = "Resumen tipo Excel: membresías, productos por bloques y total general.";
+      const op = buildOperationalData(currentRows);
+      rStats.innerHTML = `
+        <div class="rstat"><div class="k">Bloques producto</div><div class="v">${op.familyList.length}</div></div>
+        <div class="rstat"><div class="k">Membresías</div><div class="v">${fmtMoney(op.membershipTotal)}</div></div>
+        <div class="rstat"><div class="k">Productos</div><div class="v">${fmtMoney(op.productsTotal)}</div></div>
+        <div class="rstat"><div class="k">Total general</div><div class="v">${fmtMoney(op.grandTotal)}</div></div>
+      `;
+      const rowsHtml = [];
+      if(op.membershipList.length){
+        rowsHtml.push(`<tr class="repSection"><td colspan="3">Membresías</td></tr>`);
+        op.membershipList.forEach(it=>{
+          rowsHtml.push(`
+            <tr>
+              <td>${it.name}</td>
+              <td class="right">${it.qty}</td>
+              <td class="right"><strong>${fmtMoney(it.total)}</strong></td>
+            </tr>`);
+        });
+        rowsHtml.push(`<tr class="repSubtotal"><td><strong>Total membresías</strong></td><td></td><td class="right"><strong>${fmtMoney(op.membershipTotal)}</strong></td></tr>`);
+      }
+      op.familyList.forEach(f=>{
+        rowsHtml.push(`<tr class="repSection"><td colspan="3">${f.family}</td></tr>`);
+        f.items.forEach(it=>{
+          rowsHtml.push(`
+            <tr>
+              <td>${it.name}</td>
+              <td class="right">${it.qty}</td>
+              <td class="right"><strong>${fmtMoney(it.total)}</strong></td>
+            </tr>`);
+        });
+        rowsHtml.push(`<tr class="repSubtotal"><td><strong>Total ${f.family}</strong></td><td></td><td class="right"><strong>${fmtMoney(f.subtotal)}</strong></td></tr>`);
+      });
+      rowsHtml.push(`<tr class="repGrand"><td><strong>Total general</strong></td><td></td><td class="right"><strong>${fmtMoney(op.grandTotal)}</strong></td></tr>`);
+      rThead.innerHTML = `<tr><th>Concepto</th><th class="right">Piezas</th><th class="right">Total</th></tr>`;
+      rTbody.innerHTML = rowsHtml.join('');
+      rEmpty.style.display = rowsHtml.length ? 'none' : 'block';
+      rSide.innerHTML = `
+        <div class="sbox"><div class="t">Resumen operativo</div><div class="m">
+          <span class="pill">Membresías: ${fmtMoney(op.membershipTotal)}</span>
+          <span class="pill">Productos: ${fmtMoney(op.productsTotal)}</span>
+          <span class="pill">Bloques: ${op.familyList.length}</span>
+          <span class="pill">TOTAL: ${fmtMoney(op.grandTotal)}</span>
+        </div></div>
+        <div class="sbox"><div class="t">Rango</div><div class="m">
+          <span class="pill">Desde: ${rFrom.value || "—"}</span>
+          <span class="pill">Hasta: ${rTo.value || "—"}</span>
+        </div></div>`;
+      return;
     }
 
     if(type === "cortes"){
@@ -282,7 +401,22 @@
     let headers = [];
     let data = [];
 
-    if(type==="cortes"){
+    if(type==="operativo"){
+      headers = ["concepto","piezas","total"];
+      const op = buildOperationalData(rows);
+      data = [];
+      if(op.membershipList.length){
+        data.push(["Membresías","",""]);
+        op.membershipList.forEach(it=>data.push([it.name,it.qty,it.total]));
+        data.push(["Total membresías","",op.membershipTotal]);
+      }
+      op.familyList.forEach(f=>{
+        data.push([f.family,"",""]);
+        f.items.forEach(it=>data.push([it.name,it.qty,it.total]));
+        data.push([`Total ${f.family}`,"",f.subtotal]);
+      });
+      data.push(["Total general","",op.grandTotal]);
+    }else if(type==="cortes"){
       headers = ["usuario","apertura","cierre","fondo","efectivo","tarjeta","transferencia","ventas","esperado","contado","diferencia","estado"];
       const cuts = ((typeof dpGetCashSessions === "function") ? dpGetCashSessions() : []).filter(c=>{
         const date = String(c.openedAt||"").slice(0,10);

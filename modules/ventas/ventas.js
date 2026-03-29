@@ -94,13 +94,21 @@
     const expected = Number(session.openingAmount || 0) + Number(session?.totals?.byPayment?.efectivo || 0);
     const countedRaw = prompt(`Dinero contado en caja. Esperado: ${dpFmtMoney(expected)}`, String(expected));
     if(countedRaw === null) return;
-    const notes = prompt("Observaciones del cierre (opcional):", "") || "";
+    const notes = prompt("Observaciones del cierre (opcional):", session?.difference===0 ? "Cierre sin faltantes." : "") || "";
     try{
       const counted = Number(countedRaw || 0);
       if(!Number.isFinite(counted) || counted < 0){ alert("Monto inválido."); return; }
+      const closingSessionId = session.id;
       dpCloseCashSession({ countedAmount: counted, notes });
       setStatus("Caja cerrada correctamente.", "success");
       renderCashBox();
+      setTimeout(()=>{
+        const wantsPrint = confirm("Caja cerrada correctamente. ¿Imprimir ticket de corte?");
+        if(wantsPrint && typeof dpPrintCashCloseTicketBySessionId === "function"){
+          const ok = dpPrintCashCloseTicketBySessionId(closingSessionId);
+          if(!ok) alert("No se encontró el corte para imprimir.");
+        }
+      }, 20);
     }catch(err){ alert(err?.message || "No se pudo cerrar caja."); }
   }
 

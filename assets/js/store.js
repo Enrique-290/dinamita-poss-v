@@ -1318,6 +1318,95 @@ function dpBuildTicketMarkupFromSale(sale){
     </div>`;
 }
 
+function dpBuildCashCloseTicketMarkup(session){
+  const biz = dpGetBizInfo();
+  const tcfg = dpGetTicketCfg();
+  const byPay = session?.totals?.byPayment || {};
+  const opened = dpTicketDateText(session?.openedAt || "");
+  const closed = dpTicketDateText(session?.closedAt || "");
+  const note = String(session?.notes || "").trim();
+  const diff = Number(session?.difference || 0);
+  const diffLabel = diff === 0 ? "Sin faltantes" : (diff > 0 ? "Sobrante" : "Faltante");
+  const logoHtml = biz.logoDataUrl
+    ? `<div class="t-center t-logoWrap"><img class="t-logo" src="${biz.logoDataUrl}" alt="Logo"></div>`
+    : "";
+  return `
+    <div class="ticket">
+      ${logoHtml}
+      <div class="t-title">${dpEscapeHtml(biz.name || "Dinamita Gym")}</div>
+      ${biz.address ? `<div class="t-center">${dpEscapeHtml(biz.address)}</div>` : ""}
+      ${biz.phone ? `<div class="t-center">Tel: ${dpEscapeHtml(biz.phone)}</div>` : ""}
+      ${biz.email ? `<div class="t-center">${dpEscapeHtml(biz.email)}</div>` : ""}
+      ${biz.social ? `<div class="t-center">${dpEscapeHtml(biz.social)}</div>` : ""}
+      <div class="t-divider"></div>
+      <div class="t-title t-title--small">Corte de caja</div>
+      <div class="t-row"><span>ID corte</span><strong>${dpEscapeHtml(session?.id || "")}</strong></div>
+      <div class="t-row"><span>Usuario</span><strong>${dpEscapeHtml(session?.userName || "Usuario")}</strong></div>
+      ${opened ? `<div class="t-row"><span>Apertura</span><strong>${dpEscapeHtml(opened)}</strong></div>` : ""}
+      ${closed ? `<div class="t-row"><span>Cierre</span><strong>${dpEscapeHtml(closed)}</strong></div>` : ""}
+      <div class="t-divider"></div>
+      <div class="t-row"><span>Fondo inicial</span><strong>${dpFmtMoney(Number(session?.openingAmount || 0))}</strong></div>
+      <div class="t-row"><span>Ventas efectivo</span><strong>${dpFmtMoney(Number(byPay?.efectivo || 0))}</strong></div>
+      <div class="t-row"><span>Ventas tarjeta</span><strong>${dpFmtMoney(Number(byPay?.tarjeta || 0))}</strong></div>
+      <div class="t-row"><span>Ventas transferencia</span><strong>${dpFmtMoney(Number(byPay?.transferencia || 0))}</strong></div>
+      ${Number(byPay?.otro || 0) ? `<div class="t-row"><span>Ventas otro</span><strong>${dpFmtMoney(Number(byPay?.otro || 0))}</strong></div>` : ""}
+      <div class="t-row"><span>Total vendido</span><strong>${dpFmtMoney(Number(session?.totals?.total || 0))}</strong></div>
+      <div class="t-row"><span>Total corte caja</span><strong>${dpFmtMoney(Number(session?.expectedCash || 0))}</strong></div>
+      <div class="t-row"><span>Dinero contado</span><strong>${dpFmtMoney(Number(session?.closingAmount || 0))}</strong></div>
+      <div class="t-row"><span>Diferencia</span><strong>${dpFmtMoney(diff)}</strong></div>
+      <div class="t-divider"></div>
+      <div class="t-row"><span>Nota</span><strong>${dpEscapeHtml(note || `${diffLabel}.`)}</strong></div>
+      <div class="t-divider"></div>
+      <div class="t-signLabel">Firma</div>
+      <div class="t-signLine"></div>
+      <div class="t-center t-message">${dpEscapeHtml(tcfg.message || "Gracias por tu compra en Dinamita Gym 💥")}</div>
+    </div>`;
+}
+
+function dpBuildCashCloseTicketHtmlDocument(session, title){
+  const ticketMarkup = dpBuildCashCloseTicketMarkup(session);
+  const pageTitle = title || `Corte ${session?.id || ""}`;
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${dpEscapeHtml(pageTitle)}</title>
+<style>
+  body{ margin:0; font-family: ui-monospace, Menlo, Consolas, monospace; padding:12px; color:#111; background:#fff; }
+  .ticket{ max-width:58mm; width:58mm; margin:0 auto; font-size:13px; line-height:1.28; font-weight:700; }
+  .ticket *{ box-sizing:border-box; }
+  .t-title{ font-size:15px; font-weight:900; text-align:center; margin-bottom:4px; }
+  .t-title--small{ font-size:14px; }
+  .t-center{ text-align:center; word-break:break-word; }
+  .t-logoWrap{ margin:0 0 6px 0; }
+  .t-logo{ display:block; max-width:150px; max-height:70px; width:auto; height:auto; margin:0 auto; object-fit:contain; }
+  .t-divider{ border-top:1px dashed #666; margin:7px 0; }
+  .t-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .t-row strong{ font-weight:900; text-align:right; }
+  .t-signLabel{ margin-top:10px; text-align:left; }
+  .t-signLine{ border-top:1px solid #111; margin:18px 0 8px; }
+  .t-message{ margin-top:2px; font-weight:800; }
+  @page{ size:58mm auto; margin:4mm; }
+  @media print{ body{ padding:0; } .ticket{ max-width:58mm; width:58mm; } }
+</style>
+</head>
+<body>
+${ticketMarkup}
+<script>window.focus();</script>
+</body>
+</html>`;
+}
+
+function dpPrintCashCloseTicketBySessionId(sessionId){
+  const st = dpGetState();
+  const session = ((st.cashControl && st.cashControl.sessions) ? st.cashControl.sessions : []).find(x=>x.id===sessionId);
+  if(!session) return false;
+  const html = dpBuildCashCloseTicketHtmlDocument(session, `Corte ${session.id}`);
+  dpPrintHTML(html);
+  return true;
+}
+
 function dpBuildTicketHtmlDocument(sale, title){
   const ticketMarkup = dpBuildTicketMarkupFromSale(sale);
   const pageTitle = title || `Ticket ${sale?.id || ""}`;
@@ -1484,3 +1573,7 @@ function dpRenderBranding(){
     }
   });
 }
+
+window.dpBuildCashCloseTicketMarkup = dpBuildCashCloseTicketMarkup;
+window.dpBuildCashCloseTicketHtmlDocument = dpBuildCashCloseTicketHtmlDocument;
+window.dpPrintCashCloseTicketBySessionId = dpPrintCashCloseTicketBySessionId;

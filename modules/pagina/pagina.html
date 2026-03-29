@@ -1,1 +1,141 @@
-<h1>Pagina</h1><p>Módulo pagina base.</p>
+<section class="page2-shell">
+  <div class="page2-head">
+    <div>
+      <h2>Página 2.0</h2>
+      <p>Base nueva del módulo Página, separada y lista para crecer sin romper la TPV.</p>
+    </div>
+    <div class="page2-actions">
+      <button class="btn btn-sec" id="page2ResetBtn" type="button">Restablecer</button>
+      <button class="btn" id="page2SaveBtn" type="button">Guardar cambios</button>
+    </div>
+  </div>
+
+  <div class="page2-grid">
+    <aside class="page2-editor card">
+      <div class="page2-tabs" id="page2Tabs">
+        <button class="page2-tab active" data-tab="general" type="button">General</button>
+        <button class="page2-tab" data-tab="banners" type="button">Banners</button>
+        <button class="page2-tab" data-tab="catalogo" type="button">Catálogo</button>
+        <button class="page2-tab" data-tab="categorias" type="button">Categorías</button>
+        <button class="page2-tab" data-tab="promociones" type="button">Promociones</button>
+        <button class="page2-tab" data-tab="contacto" type="button">Contacto</button>
+        <button class="page2-tab" data-tab="exportacion" type="button">Exportación</button>
+      </div>
+
+      <div class="page2-panels">
+        <div class="page2-panel active" data-panel="general">
+          <div class="form-grid two-col">
+            <label>
+              Nombre del negocio
+              <input class="input" id="page2BusinessName" placeholder="Dinamita Gym">
+            </label>
+            <label>
+              Frase principal
+              <input class="input" id="page2Tagline" placeholder="Explota tu potencial">
+            </label>
+            <label class="full">
+              Texto de bienvenida
+              <textarea class="input" id="page2WelcomeText" rows="3" placeholder="Entrena, mejora y crece con nosotros."></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="page2-panel" data-panel="banners">
+          <div class="form-grid">
+            <label>
+              Banner principal (URL por ahora)
+              <input class="input" id="page2HeroImage" placeholder="https://...">
+            </label>
+            <label>
+              Banner secundario (URL por ahora)
+              <input class="input" id="page2SecondaryImage" placeholder="https://...">
+            </label>
+          </div>
+          <p class="page2-note">En esta base solo dejamos preparada la estructura. Más adelante lo dejamos con subida desde dispositivo.</p>
+        </div>
+
+        <div class="page2-panel" data-panel="catalogo">
+          <div class="form-grid two-col">
+            <label>
+              Productos destacados visibles
+              <input class="input" id="page2FeaturedLimit" type="number" min="1" max="24" value="6">
+            </label>
+            <label>
+              Productos catálogo visibles
+              <input class="input" id="page2CatalogLimit" type="number" min="1" max="50" value="8">
+            </label>
+          </div>
+          <p class="page2-note">Aquí vamos a conectar el catálogo real en las siguientes versiones.</p>
+        </div>
+
+        <div class="page2-panel" data-panel="categorias">
+          <div class="form-grid">
+            <label>
+              Categorías principales (separadas por coma)
+              <input class="input" id="page2Categories" placeholder="Suplementos, Bebidas, Accesorios, Membresías">
+            </label>
+          </div>
+        </div>
+
+        <div class="page2-panel" data-panel="promociones">
+          <div class="form-grid">
+            <label>
+              Título de promoción
+              <input class="input" id="page2PromoTitle" placeholder="Promoción de la semana">
+            </label>
+            <label>
+              Texto de promoción
+              <textarea class="input" id="page2PromoText" rows="3" placeholder="2x1 en membresías seleccionadas"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="page2-panel" data-panel="contacto">
+          <div class="form-grid two-col">
+            <label>
+              WhatsApp
+              <input class="input" id="page2Whatsapp" placeholder="5512345678">
+            </label>
+            <label>
+              Teléfono visible
+              <input class="input" id="page2Phone" placeholder="55 1234 5678">
+            </label>
+            <label class="full">
+              Dirección
+              <input class="input" id="page2Address" placeholder="Dirección del negocio">
+            </label>
+            <label>
+              Facebook
+              <input class="input" id="page2Facebook" placeholder="https://facebook.com/...">
+            </label>
+            <label>
+              Instagram
+              <input class="input" id="page2Instagram" placeholder="https://instagram.com/...">
+            </label>
+          </div>
+        </div>
+
+        <div class="page2-panel" data-panel="exportacion">
+          <div class="page2-export card-soft">
+            <strong>Página 2.0 — Base modular</strong>
+            <p>En V24R.1 solo dejamos lista la base. La exportación formal llegará después.</p>
+            <ul class="page2-checks">
+              <li>Estado central</li>
+              <li>Editor por secciones</li>
+              <li>Vista previa modular</li>
+              <li>Preparación para catálogo, carrito y exportación</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="page2-previewWrap card">
+      <div class="page2-previewHead">
+        <h3>Vista previa modular</h3>
+        <span class="badge">Base estable</span>
+      </div>
+      <div id="page2Preview" class="page2-preview"></div>
+    </section>
+  </div>
+</section>

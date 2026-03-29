@@ -444,3 +444,78 @@ section > header p{
 .dp-authHint{ margin-top:12px; color:var(--dp-muted); font-size:12px; }
 body.dp-auth-open #menu, body.dp-auth-open #content{ filter: blur(1px); pointer-events:none; user-select:none; }
 @media(max-width:700px){ .dp-userBadge{ left:86px; right:12px; top:10px; } }
+
+
+/* === V22.1 menu header polish === */
+.dp-menuTop{
+  align-items:center;
+  gap:12px;
+  padding:0 0 12px;
+}
+#menu .dp-menuToggle,
+.dp-menuToggle{
+  width:44px !important;
+  min-width:44px !important;
+  height:44px !important;
+  padding:0 !important;
+  background:var(--dp-red) !important;
+  border:none !important;
+  border-radius:12px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-shadow:0 8px 18px rgba(192,0,0,.18) !important;
+  flex:0 0 44px;
+}
+#menu .dp-menuToggle:hover,
+.dp-menuToggle:hover{
+  background:#aa0000 !important;
+}
+.dp-menuToggle .dp-ham::before,
+.dp-menuToggle .dp-ham::after,
+.dp-menuToggle .dp-ham span{
+  background:#fff !important;
+}
+.dp-brand{
+  flex:1;
+  gap:12px;
+}
+.dp-brandLogoWrap{
+  width:56px;
+  height:56px;
+  border-radius:14px;
+  flex:0 0 56px;
+}
+#dp-menuLogoFallback{
+  font-size:20px;
+}
+#dp-menuName{
+  font-size:22px;
+  line-height:1.05;
+  max-width:120px;
+}
+.dp-brandSub{
+  font-size:16px;
+  font-weight:700;
+  margin-top:4px;
+}
+body.dp-menu-collapsed #menu .dp-menuToggle{
+  width:44px !important;
+  min-width:44px !important;
+}
+body.dp-menu-collapsed .dp-brandLogoWrap{
+  width:48px;
+  height:48px;
+  flex-basis:48px;
+}
+@media (max-width: 900px){
+  .dp-brandLogoWrap{
+    width:52px;
+    height:52px;
+    flex-basis:52px;
+  }
+  #dp-menuName{
+    font-size:20px;
+    max-width:108px;
+  }
+}

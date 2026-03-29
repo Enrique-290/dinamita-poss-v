@@ -112,6 +112,7 @@
     if(!(monto>0)){ alert('Ingresa un monto mayor a 0.'); $('g-monto').focus(); return; }
 
     const s = ensureArrays(st());
+    const activeCashSession = (typeof dpGetActiveCashSession === "function") ? dpGetActiveCashSession() : null;
     s.expenses.unshift({
       id: dpId('G'),
       date: fecha,
@@ -120,6 +121,9 @@
       amount: monto,
       payment: pago,
       notes: notas,
+      cashSessionId: activeCashSession?.id || "",
+      cashSessionUserId: activeCashSession?.userId || "",
+      cashSessionUserName: activeCashSession?.userName || "",
       createdAt: dpNowISO()
     });
     save(s);

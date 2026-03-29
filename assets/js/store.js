@@ -389,6 +389,19 @@ function dpCloseCashSession({ countedAmount=0, notes="" }={}){
     const counted = Number(countedAmount||0);
     const efectivo = Number(active?.totals?.byPayment?.efectivo || 0);
     const expectedCash = Number(active.openingAmount||0) + efectivo;
+    const sessionExpenses = (Array.isArray(st.expenses) ? st.expenses : []).filter(x => String(x?.cashSessionId || "") === String(active.id));
+    const totalExpenses = sessionExpenses.reduce((acc, x) => acc + Number(x?.amount || 0), 0);
+    active.expenses = sessionExpenses.map(x => ({
+      id: x.id,
+      date: x.date,
+      category: x.category,
+      description: x.description,
+      amount: Number(x.amount || 0),
+      payment: x.payment,
+      notes: x.notes || ""
+    }));
+    active.totalExpenses = totalExpenses;
+    active.netTotal = Number(active?.totals?.total || 0) - totalExpenses;
     active.expectedCash = expectedCash;
     active.closingAmount = counted;
     active.difference = counted - expectedCash;
@@ -1230,6 +1243,20 @@ function dpTicketDateText(at){
   return raw.replace("T", " ").slice(0, 19);
 }
 
+function dpGetExpensesByCashSessionId(sessionId){
+  const st = dpGetState();
+  const expenses = Array.isArray(st.expenses) ? st.expenses : [];
+  return expenses.filter(x => String(x?.cashSessionId || "") === String(sessionId || ""));
+}
+
+function dpGetExpenseSummaryByCashSessionId(sessionId){
+  const rows = dpGetExpensesByCashSessionId(sessionId);
+  return {
+    items: rows,
+    total: rows.reduce((acc, x) => acc + Number(x?.amount || 0), 0)
+  };
+}
+
 function dpGetProductNameById(productId){
   const st = dpGetState();
   const p = (st.products || []).find(x => x.id === productId);
@@ -1327,6 +1354,15 @@ function dpBuildCashCloseTicketMarkup(session){
   const note = String(session?.notes || "").trim();
   const diff = Number(session?.difference || 0);
   const diffLabel = diff === 0 ? "Sin faltantes" : (diff > 0 ? "Sobrante" : "Faltante");
+  const persistedExpenses = Array.isArray(session?.expenses) ? session.expenses : null;
+  const expenseSummary = persistedExpenses
+    ? { items: persistedExpenses, total: Number(session?.totalExpenses || 0) }
+    : dpGetExpenseSummaryByCashSessionId(session?.id || "");
+  const expenseLines = (expenseSummary.items || []).map(x => `
+      <div class="t-row"><span>${dpEscapeHtml(x.description || x.category || "Gasto")}</span><strong>${dpFmtMoney(Number(x.amount || 0))}</strong></div>
+  `).join("");
+  const totalExpenses = Number(expenseSummary.total || 0);
+  const netTotal = Number(session?.netTotal != null ? session.netTotal : (Number(session?.totals?.total || 0) - totalExpenses));
   const logoHtml = biz.logoDataUrl
     ? `<div class="t-center t-logoWrap"><img class="t-logo" src="${biz.logoDataUrl}" alt="Logo"></div>`
     : "";
@@ -1351,6 +1387,10 @@ function dpBuildCashCloseTicketMarkup(session){
       <div class="t-row"><span>Ventas transferencia</span><strong>${dpFmtMoney(Number(byPay?.transferencia || 0))}</strong></div>
       ${Number(byPay?.otro || 0) ? `<div class="t-row"><span>Ventas otro</span><strong>${dpFmtMoney(Number(byPay?.otro || 0))}</strong></div>` : ""}
       <div class="t-row"><span>Total vendido</span><strong>${dpFmtMoney(Number(session?.totals?.total || 0))}</strong></div>
+      ${expenseLines ? `<div class="t-divider"></div><div class="t-title t-title--small">Gastos del turno</div>${expenseLines}` : ""}
+      <div class="t-row"><span>Total gastos</span><strong>${dpFmtMoney(totalExpenses)}</strong></div>
+      <div class="t-row"><span>Neto del turno</span><strong>${dpFmtMoney(netTotal)}</strong></div>
+      <div class="t-divider"></div>
       <div class="t-row"><span>Total corte caja</span><strong>${dpFmtMoney(Number(session?.expectedCash || 0))}</strong></div>
       <div class="t-row"><span>Dinero contado</span><strong>${dpFmtMoney(Number(session?.closingAmount || 0))}</strong></div>
       <div class="t-row"><span>Diferencia</span><strong>${dpFmtMoney(diff)}</strong></div>
@@ -1575,5 +1615,7 @@ function dpRenderBranding(){
 }
 
 window.dpBuildCashCloseTicketMarkup = dpBuildCashCloseTicketMarkup;
+window.dpGetExpensesByCashSessionId = dpGetExpensesByCashSessionId;
+window.dpGetExpenseSummaryByCashSessionId = dpGetExpenseSummaryByCashSessionId;
 window.dpBuildCashCloseTicketHtmlDocument = dpBuildCashCloseTicketHtmlDocument;
 window.dpPrintCashCloseTicketBySessionId = dpPrintCashCloseTicketBySessionId;

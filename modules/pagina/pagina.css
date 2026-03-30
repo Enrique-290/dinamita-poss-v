@@ -96,3 +96,5 @@
 
 .page2-panel[data-panel="banners"] .form-grid.two-col{grid-template-columns:1fr}
 .page2-panel[data-panel="banners"] label{width:100%}
+
+.page2-exportActions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 10px}

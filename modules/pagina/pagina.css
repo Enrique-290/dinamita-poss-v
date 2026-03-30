@@ -93,3 +93,6 @@
 .page2-bannerPreview--secondary{min-height:120px}
 .page2-bannerPreview.has-image{color:transparent;border-style:solid}
 .page2-heroMedia--secondary{min-height:180px}
+
+.page2-panel[data-panel="banners"] .form-grid.two-col{grid-template-columns:1fr}
+.page2-panel[data-panel="banners"] label{width:100%}

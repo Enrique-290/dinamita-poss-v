@@ -414,12 +414,12 @@ ${lines.join('\n')}\n\nTotal: ${money(cartTotal())}`;
       <div class="page2-site">
         ${renderHeader()}
         ${renderHero()}
+        ${renderSecondaryBanner()}
         ${renderCategorias(categories)}
         ${renderDestacados(products)}
         ${renderMasVendidos(products)}
         ${renderNuevos(products)}
         ${renderCatalogo(products, categories)}
-        ${renderSecondaryBanner()}
         ${renderCarrito()}
         ${renderContacto()}
         ${renderFooter()}

@@ -84,3 +84,12 @@
 .page2-btnMini:active,.page2-btnPrimary:active,.page2-btnGhost:active,.page2-chip:active{transform:translateY(1px) scale(.98);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .page2-btnMini:focus-visible,.page2-btnPrimary:focus-visible,.page2-btnGhost:focus-visible,.page2-chip:focus-visible{outline:3px solid rgba(192,0,0,.18);outline-offset:2px}
 .page2-btnMini[disabled],.page2-btnPrimary[disabled],.page2-btnGhost[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none}
+
+
+.page2-fileInput{padding:8px;background:#fff}
+.page2-bannerTools{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.page2-bannerPreviewWrap{margin-top:10px}
+.page2-bannerPreview{min-height:150px;border:1px dashed #ddd;border-radius:16px;background:#f6f6f6 center/cover no-repeat;display:grid;place-items:center;color:#888;font-weight:800;padding:10px;text-align:center}
+.page2-bannerPreview--secondary{min-height:120px}
+.page2-bannerPreview.has-image{color:transparent;border-style:solid}
+.page2-heroMedia--secondary{min-height:180px}

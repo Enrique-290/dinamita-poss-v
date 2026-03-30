@@ -75,7 +75,13 @@
     tagline: document.getElementById('page2Tagline'),
     welcomeText: document.getElementById('page2WelcomeText'),
     heroImage: document.getElementById('page2HeroImage'),
+    heroImageFile: document.getElementById('page2HeroImageFile'),
+    heroImagePreview: document.getElementById('page2HeroImagePreview'),
+    heroClearBtn: document.getElementById('page2HeroClearBtn'),
     secondaryImage: document.getElementById('page2SecondaryImage'),
+    secondaryImageFile: document.getElementById('page2SecondaryImageFile'),
+    secondaryImagePreview: document.getElementById('page2SecondaryImagePreview'),
+    secondaryClearBtn: document.getElementById('page2SecondaryClearBtn'),
     featuredLimit: document.getElementById('page2FeaturedLimit'),
     catalogLimit: document.getElementById('page2CatalogLimit'),
     mostSoldLimit: document.getElementById('page2MostSoldLimit'),
@@ -182,12 +188,73 @@
     cursor[path[path.length-1]] = value;
   }
 
+
+
+  function updateBannerPreview(el, src, label){
+    if(!el) return;
+    if(src){
+      el.style.backgroundImage = `url('${String(src).replace(/'/g, "\'")}')`;
+      el.textContent = '';
+      el.classList.add('has-image');
+    }else{
+      el.style.backgroundImage = '';
+      el.textContent = label || 'Sin imagen';
+      el.classList.remove('has-image');
+    }
+  }
+
+  function readImageFile(file, cb){
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => cb(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  }
+
+  function bindBannerUploads(){
+    refs.heroImageFile?.addEventListener('change', (e)=>{
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      readImageFile(file, (dataUrl)=>{
+        state.banners.heroImage = dataUrl;
+        refs.heroImage.value = dataUrl;
+        updateBannerPreview(refs.heroImagePreview, dataUrl, 'Sin imagen');
+        renderPreview();
+      });
+    });
+    refs.secondaryImageFile?.addEventListener('change', (e)=>{
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      readImageFile(file, (dataUrl)=>{
+        state.banners.secondaryImage = dataUrl;
+        refs.secondaryImage.value = dataUrl;
+        updateBannerPreview(refs.secondaryImagePreview, dataUrl, 'Sin imagen');
+        renderPreview();
+      });
+    });
+    refs.heroClearBtn?.addEventListener('click', ()=>{
+      state.banners.heroImage = '';
+      refs.heroImage.value = '';
+      if(refs.heroImageFile) refs.heroImageFile.value = '';
+      updateBannerPreview(refs.heroImagePreview, '', 'Sin imagen');
+      renderPreview();
+    });
+    refs.secondaryClearBtn?.addEventListener('click', ()=>{
+      state.banners.secondaryImage = '';
+      refs.secondaryImage.value = '';
+      if(refs.secondaryImageFile) refs.secondaryImageFile.value = '';
+      updateBannerPreview(refs.secondaryImagePreview, '', 'Sin imagen');
+      renderPreview();
+    });
+  }
+
   function hydrate(){
     refs.businessName.value = state.general.businessName || '';
     refs.tagline.value = state.general.tagline || '';
     refs.welcomeText.value = state.general.welcomeText || '';
     refs.heroImage.value = state.banners.heroImage || '';
     refs.secondaryImage.value = state.banners.secondaryImage || '';
+    updateBannerPreview(refs.heroImagePreview, state.banners.heroImage || '', 'Sin imagen');
+    updateBannerPreview(refs.secondaryImagePreview, state.banners.secondaryImage || '', 'Sin imagen');
     refs.featuredLimit.value = state.catalogo.featuredLimit || 6;
     refs.catalogLimit.value = state.catalogo.catalogLimit || 8;
     refs.categories.value = (state.categorias.items || []).join(', ');
@@ -352,6 +419,7 @@ ${lines.join('\n')}\n\nTotal: ${money(cartTotal())}`;
         ${renderMasVendidos(products)}
         ${renderNuevos(products)}
         ${renderCatalogo(products, categories)}
+        ${renderSecondaryBanner()}
         ${renderCarrito()}
         ${renderContacto()}
         ${renderFooter()}
@@ -544,6 +612,20 @@ function renderCarrito(){
   `;
 }
 
+  function renderSecondaryBanner(){
+    if(!state.banners.secondaryImage) return '';
+    const bg = `style="background-image:url('${escapeAttr(state.banners.secondaryImage)}')"`;
+    return `
+      <section class="page2-section">
+        <div class="page2-sectionHead">
+          <h4>Banner secundario</h4>
+          <span class="page2-muted">Imagen promocional complementaria</span>
+        </div>
+        <div class="page2-heroMedia page2-heroMedia--secondary" ${bg}></div>
+      </section>
+    `;
+  }
+
   function renderContacto(){
     return `
       <section class="page2-section" id="contacto">
@@ -625,6 +707,7 @@ function renderCarrito(){
 
   bindTabs();
   bindInputs();
+  bindBannerUploads();
   bindPreviewActions();
   hydrate();
   renderPreview();

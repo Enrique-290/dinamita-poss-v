@@ -56,3 +56,8 @@
 .page2-btnMini{border:1px solid #ddd;background:#fff;color:#333;padding:8px 12px;border-radius:999px;font-weight:800;cursor:pointer}
 .page2-btnMini.primary{background:#c00000;color:#fff;border-color:#c00000}
 .page2-empty{padding:18px;border:1px dashed #ddd;background:#fafafa;border-radius:16px;color:#666;font-weight:700}
+
+.page2-productMedia{position:relative}
+.page2-tag{position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.02em;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.page2-tag.hot{background:#ffe7e7;color:#b00000;border:1px solid #ffc4c4}
+.page2-tag.new{background:#eaf8ea;color:#136c13;border:1px solid #cbeccb}

@@ -12,7 +12,9 @@
     },
     catalogo: {
       featuredLimit: 6,
-      catalogLimit: 8,
+      catalogLimit: 12,
+      mostSoldLimit: 6,
+      newLimit: 6,
     },
     categorias: {
       items: ['Suplementos','Bebidas','Accesorios','Membresías'],
@@ -73,6 +75,8 @@
     secondaryImage: document.getElementById('page2SecondaryImage'),
     featuredLimit: document.getElementById('page2FeaturedLimit'),
     catalogLimit: document.getElementById('page2CatalogLimit'),
+    mostSoldLimit: document.getElementById('page2MostSoldLimit'),
+    newLimit: document.getElementById('page2NewLimit'),
     categories: document.getElementById('page2Categories'),
     promoTitle: document.getElementById('page2PromoTitle'),
     promoText: document.getElementById('page2PromoText'),
@@ -99,6 +103,8 @@
       ['secondaryImage',['banners','secondaryImage']],
       ['featuredLimit',['catalogo','featuredLimit']],
       ['catalogLimit',['catalogo','catalogLimit']],
+      ['mostSoldLimit',['catalogo','mostSoldLimit']],
+      ['newLimit',['catalogo','newLimit']],
       ['categories',['categorias','items'],'csv'],
       ['promoTitle',['promociones','title']],
       ['promoText',['promociones','text']],
@@ -254,6 +260,8 @@
         ${renderHero()}
         ${renderCategorias(categories)}
         ${renderDestacados(products)}
+        ${renderMasVendidos(products)}
+        ${renderNuevos(products)}
         ${renderCatalogo(products, categories)}
         ${renderContacto()}
         ${renderFooter()}
@@ -322,6 +330,47 @@
     `;
   }
 
+  function getMostSoldProducts(products){
+    const most = (((window.dpGetState && dpGetState()) || {}).analytics || {}).mostSold || {};
+    const ordered = products.slice().sort((a,b)=> Number(most[b.id]||0) - Number(most[a.id]||0));
+    const positive = ordered.filter(p => Number(most[p.id]||0) > 0);
+    return (positive.length ? positive : ordered).slice(0, Number(state.catalogo.mostSoldLimit||6));
+  }
+
+  function getNewestProducts(products){
+    return products.slice().sort((a,b)=> String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))).slice(0, Number(state.catalogo.newLimit||6));
+  }
+
+  function renderMasVendidos(products){
+    const most = getMostSoldProducts(products);
+    return `
+      <section class="page2-section">
+        <div class="page2-sectionHead">
+          <h4>Lo más vendido</h4>
+          <span class="page2-muted">Productos con mayor movimiento en la TPV</span>
+        </div>
+        <div class="page2-productGrid page2-productGrid--featured">
+          ${most.length ? most.map(p=>renderProductCard(p,'top')).join('') : '<div class="page2-empty">Todavía no hay historial de ventas suficiente para este bloque.</div>'}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderNuevos(products){
+    const newest = getNewestProducts(products);
+    return `
+      <section class="page2-section">
+        <div class="page2-sectionHead">
+          <h4>Nuevos productos</h4>
+          <span class="page2-muted">Lo más reciente agregado o actualizado</span>
+        </div>
+        <div class="page2-productGrid page2-productGrid--featured">
+          ${newest.length ? newest.map(p=>renderProductCard(p,'new')).join('') : '<div class="page2-empty">No hay productos recientes para mostrar.</div>'}
+        </div>
+      </section>
+    `;
+  }
+
   function renderCatalogo(products){
     const filtered = filterProducts(products).slice(0, Number(state.catalogo.catalogLimit||8));
     return `
@@ -341,13 +390,14 @@
     `;
   }
 
-  function renderProductCard(product){
+  function renderProductCard(product, badge=''){
     const img = product.image
       ? `<img class="page2-productImg" src="${escapeAttr(product.image)}" alt="${escapeAttr(product.name)}">`
       : `<div class="page2-productImg page2-productFallback">${initials(product.name)}</div>`;
+    const badgeHtml = badge==='top' ? '<span class="page2-tag hot">Más vendido</span>' : badge==='new' ? '<span class="page2-tag new">Nuevo</span>' : '';
     return `
       <article class="page2-productCard">
-        ${img}
+        <div class="page2-productMedia">${img}${badgeHtml}</div>
         <div class="page2-productBody">
           <div class="page2-productCategory">${escapeHtml(product.category)}</div>
           <h5>${escapeHtml(product.name)}</h5>
@@ -385,7 +435,7 @@
     return arr.join(' · ') || 'Pendiente';
   }
   function renderFooter(){
-    return `<footer class="page2-footer">Página 2.0 modular · V24R.2 catálogo real base · Dinamita POS</footer>`;
+    return `<footer class="page2-footer">Página 2.0 modular · V24R.3 categorías + más vendidos + nuevos · Dinamita POS</footer>`;
   }
 
   function escapeHtml(v){ return String(v??'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s])); }

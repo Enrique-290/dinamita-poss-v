@@ -30,6 +30,9 @@
       facebook: '',
       instagram: '',
     },
+    cart: {
+      items: []
+    },
     ui: {
       search: '',
       selectedCategory: 'all'
@@ -249,6 +252,92 @@
     catch(e){ return `$${Number(n||0).toFixed(2)}`; }
   }
 
+function getCartItems(){
+  return Array.isArray(state.cart?.items) ? state.cart.items : [];
+}
+
+function findProductById(id){
+  return getTPVProducts().find(p => String(p.id) === String(id));
+}
+
+function addToCart(productId){
+  const product = findProductById(productId);
+  if(!product) return;
+  if(!state.cart || !Array.isArray(state.cart.items)) state.cart = { items: [] };
+  const existing = state.cart.items.find(x => String(x.id) === String(productId));
+  if(existing){
+    existing.qty += 1;
+  } else {
+    state.cart.items.push({
+      id: product.id,
+      name: product.name,
+      price: Number(product.price || 0),
+      category: product.category || 'General',
+      qty: 1
+    });
+  }
+  renderPreview();
+}
+
+function updateCartQty(productId, delta){
+  const items = getCartItems();
+  const idx = items.findIndex(x => String(x.id) === String(productId));
+  if(idx < 0) return;
+  items[idx].qty += delta;
+  if(items[idx].qty <= 0) items.splice(idx,1);
+  renderPreview();
+}
+
+function removeFromCart(productId){
+  const items = getCartItems();
+  const idx = items.findIndex(x => String(x.id) === String(productId));
+  if(idx >= 0) items.splice(idx,1);
+  renderPreview();
+}
+
+function clearCart(){
+  if(!state.cart) state.cart = { items: [] };
+  state.cart.items = [];
+  renderPreview();
+}
+
+function cartTotal(){
+  return getCartItems().reduce((sum, item) => sum + (Number(item.price||0) * Number(item.qty||0)), 0);
+}
+
+function normalizeMxNumber(raw){
+  const digits = String(raw || '').replace(/\D/g,'');
+  if(!digits) return '';
+  if(digits.startswith?.('521')) return digits;
+  if(digits.startsWith('521')) return digits;
+  if(digits.startsWith('52') && digits.length === 12) return '521' + digits.slice(2);
+  if(digits.length === 10) return '521' + digits;
+  if(digits.length === 12 && digits.startsWith('52')) return '521' + digits.slice(2);
+  return digits;
+}
+
+function getWhatsappNumber(){
+  return normalizeMxNumber(state.contacto.whatsapp || state.contacto.phone || '');
+}
+
+function openWhatsAppMessage(message){
+  const number = getWhatsappNumber();
+  if(!number){
+    alert('Captura primero el WhatsApp o teléfono en la sección Contacto.');
+    return;
+  }
+  const url = `https://api.whatsapp.com/send?phone=${number}&text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function buildCartWhatsAppMessage(){
+  const items = getCartItems();
+  const lines = items.map(item => `- ${item.name} x${item.qty} ${money(Number(item.price||0) * Number(item.qty||0))}`);
+  return `Hola, quiero hacer este pedido:
+${lines.join('\n')}\n\nTotal: ${money(cartTotal())}`;
+}
+
+
   function renderPreview(){
     const products = getTPVProducts();
     const categories = getCategoryList(products);
@@ -263,6 +352,7 @@
         ${renderMasVendidos(products)}
         ${renderNuevos(products)}
         ${renderCatalogo(products, categories)}
+        ${renderCarrito()}
         ${renderContacto()}
         ${renderFooter()}
       </div>
@@ -405,12 +495,54 @@
           <div class="page2-productPrice">${money(product.price)}</div>
           <div class="page2-productActions">
             <button class="page2-btnMini" type="button" data-page2-cta="ver">Ver</button>
+            <button class="page2-btnMini" type="button" data-page2-cart-action="add" data-page2-product-id="${escapeAttr(product.id)}">Agregar</button>
             <button class="page2-btnMini primary" type="button" data-page2-cta="wa" data-page2-msg="${escapeAttr(buildWhatsAppMessage(product))}">WhatsApp</button>
           </div>
         </div>
       </article>
     `;
   }
+
+
+function renderCarrito(){
+  const items = getCartItems();
+  return `
+    <section class="page2-section">
+      <div class="page2-sectionHead">
+        <h4>Carrito</h4>
+        <span class="page2-muted">Pedido rápido por WhatsApp</span>
+      </div>
+      <div class="page2-cartWrap">
+        ${items.length ? `
+          <div class="page2-cartList">
+            ${items.map(item=>`
+              <div class="page2-cartItem">
+                <div>
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <div class="page2-cartMeta">${escapeHtml(item.category || 'General')} · ${money(item.price)}</div>
+                </div>
+                <div class="page2-cartControls">
+                  <button class="page2-btnMini" type="button" data-page2-cart-action="minus" data-page2-product-id="${escapeAttr(item.id)}">-</button>
+                  <span class="page2-cartQty">${item.qty}</span>
+                  <button class="page2-btnMini" type="button" data-page2-cart-action="plus" data-page2-product-id="${escapeAttr(item.id)}">+</button>
+                  <button class="page2-btnMini" type="button" data-page2-cart-action="remove" data-page2-product-id="${escapeAttr(item.id)}">Quitar</button>
+                </div>
+                <div class="page2-cartLineTotal">${money(Number(item.price||0) * Number(item.qty||0))}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="page2-cartFooter">
+            <div class="page2-cartTotal">Total: <strong>${money(cartTotal())}</strong></div>
+            <div class="page2-cartFooterActions">
+              <button class="page2-btnMini" type="button" data-page2-cart-action="clear">Vaciar</button>
+              <button class="page2-btnMini primary" type="button" data-page2-cart-action="send">Enviar por WhatsApp</button>
+            </div>
+          </div>
+        ` : `<div class="page2-empty">Tu carrito está vacío. Agrega productos desde el catálogo.</div>`}
+      </div>
+    </section>
+  `;
+}
 
   function renderContacto(){
     return `
@@ -435,7 +567,7 @@
     return arr.join(' · ') || 'Pendiente';
   }
   function renderFooter(){
-    return `<footer class="page2-footer">Página 2.0 modular · V24R.3 categorías + más vendidos + nuevos · Dinamita POS</footer>`;
+    return `<footer class="page2-footer">Página 2.0 modular · V24R.4 carrito + WhatsApp · Dinamita POS</footer>`;
   }
 
   function escapeHtml(v){ return String(v??'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s])); }

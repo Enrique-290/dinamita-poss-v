@@ -573,8 +573,59 @@ function renderCarrito(){
   function escapeHtml(v){ return String(v??'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s])); }
   function escapeAttr(v){ return String(v??'').replace(/"/g,'&quot;'); }
 
+
+
+  function bindPreviewActions(){
+    refs.preview.addEventListener('click', (e)=>{
+      const categoryBtn = e.target.closest('[data-page2-category]');
+      if(categoryBtn){
+        e.preventDefault();
+        state.ui.selectedCategory = categoryBtn.getAttribute('data-page2-category') || 'all';
+        renderPreview();
+        return;
+      }
+
+      const ctaBtn = e.target.closest('[data-page2-cta]');
+      if(ctaBtn){
+        e.preventDefault();
+        const cta = ctaBtn.getAttribute('data-page2-cta');
+        if(cta === 'wa'){
+          openWhatsAppMessage(ctaBtn.getAttribute('data-page2-msg') || 'Hola, me interesa información.');
+        } else if(cta === 'ver'){
+          const card = ctaBtn.closest('.page2-productCard');
+          const title = card?.querySelector('h5')?.textContent || 'Producto';
+          alert(`Vista rápida: ${title}`);
+        }
+        return;
+      }
+
+      const cartBtn = e.target.closest('[data-page2-cart-action]');
+      if(cartBtn){
+        e.preventDefault();
+        const action = cartBtn.getAttribute('data-page2-cart-action');
+        const productId = cartBtn.getAttribute('data-page2-product-id');
+        if(action === 'add' && productId) addToCart(productId);
+        if(action === 'plus' && productId) updateCartQty(productId, 1);
+        if(action === 'minus' && productId) updateCartQty(productId, -1);
+        if(action === 'remove' && productId) removeFromCart(productId);
+        if(action === 'clear') clearCart();
+        if(action === 'send') openWhatsAppMessage(buildCartWhatsAppMessage());
+        return;
+      }
+    });
+
+    refs.preview.addEventListener('input', (e)=>{
+      const search = e.target.closest('[data-page2-search]');
+      if(search){
+        state.ui.search = search.value || '';
+        renderPreview();
+      }
+    });
+  }
+
   bindTabs();
   bindInputs();
+  bindPreviewActions();
   hydrate();
   renderPreview();
 })();

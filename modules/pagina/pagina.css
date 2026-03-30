@@ -74,3 +74,13 @@
 .page2-cartFooter{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #eee}
 .page2-cartTotal{font-size:16px}
 .page2-cartFooterActions{display:flex;gap:8px;flex-wrap:wrap}
+
+
+.page2-btnMini,.page2-btnPrimary,.page2-btnGhost,.page2-chip{transition:transform .08s ease, box-shadow .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease}
+.page2-btnMini:hover,.page2-btnPrimary:hover,.page2-btnGhost:hover,.page2-chip:hover{box-shadow:0 8px 18px rgba(0,0,0,.10)}
+.page2-btnMini:hover{border-color:#c00000;color:#b00000;background:#fff5f5}
+.page2-btnMini.primary:hover,.page2-btnPrimary:hover{background:#a80000;border-color:#a80000;color:#fff}
+.page2-btnGhost:hover{background:#f7f7f7}
+.page2-btnMini:active,.page2-btnPrimary:active,.page2-btnGhost:active,.page2-chip:active{transform:translateY(1px) scale(.98);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.page2-btnMini:focus-visible,.page2-btnPrimary:focus-visible,.page2-btnGhost:focus-visible,.page2-chip:focus-visible{outline:3px solid rgba(192,0,0,.18);outline-offset:2px}
+.page2-btnMini[disabled],.page2-btnPrimary[disabled],.page2-btnGhost[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none}

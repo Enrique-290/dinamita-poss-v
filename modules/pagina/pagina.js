@@ -27,6 +27,10 @@
       address: '',
       facebook: '',
       instagram: '',
+    },
+    ui: {
+      search: '',
+      selectedCategory: 'all'
     }
   };
 
@@ -129,6 +133,34 @@
       renderPreview();
       saveState();
     });
+
+    refs.preview?.addEventListener('input', (e)=>{
+      const target = e.target;
+      if(target?.matches('[data-page2-search]')){
+        state.ui.search = target.value || '';
+        renderPreview();
+      }
+    });
+
+    refs.preview?.addEventListener('click', (e)=>{
+      const categoryBtn = e.target.closest('[data-page2-category]');
+      if(categoryBtn){
+        state.ui.selectedCategory = categoryBtn.dataset.page2Category || 'all';
+        renderPreview();
+        return;
+      }
+      const cta = e.target.closest('[data-page2-cta]');
+      if(cta){
+        e.preventDefault();
+        const kind = cta.dataset.page2Cta;
+        if(kind === 'wa'){
+          const msg = cta.dataset.page2Msg || 'Hola, me interesa información del gimnasio';
+          alert('Base V24R.2: aquí irá la salida a WhatsApp en la siguiente versión.\n\nMensaje preparado:\n' + msg);
+        } else if(kind === 'ver') {
+          alert('Base V24R.2: el detalle de producto se activará en la siguiente versión.');
+        }
+      }
+    });
   }
 
   function setByPath(obj, path, value){
@@ -159,13 +191,70 @@
     refs.instagram.value = state.contacto.instagram || '';
   }
 
+  function getTPVProducts(){
+    try{
+      const st = (typeof dpGetState === 'function') ? dpGetState() : null;
+      const list = Array.isArray(st?.products) ? st.products : [];
+      return list.map((p, idx)=>({
+        id: p.id || ('P'+idx),
+        name: p.name || 'Producto',
+        price: Number(p.price || 0),
+        stock: Number(p.stock || 0),
+        category: normalizeCategory(p.category || p.name || 'General'),
+        image: p.image || '',
+        sku: p.sku || '',
+        barcode: p.barcode || ''
+      }));
+    }catch(e){
+      console.warn('No se pudo leer catálogo TPV', e);
+      return [];
+    }
+  }
+
+  function normalizeCategory(cat){
+    const c = String(cat||'').trim();
+    if(!c) return 'General';
+    return c.charAt(0).toUpperCase() + c.slice(1);
+  }
+
+  function getCategoryList(products){
+    const fromProducts = [...new Set(products.map(p=>p.category).filter(Boolean))];
+    const manual = (state.categorias.items || []).map(normalizeCategory);
+    const merged = [...new Set([...fromProducts, ...manual])];
+    return merged.length ? merged : ['General'];
+  }
+
+  function filterProducts(products){
+    const q = String(state.ui.search || '').trim().toLowerCase();
+    const cat = state.ui.selectedCategory || 'all';
+    return products.filter(p=>{
+      const catOk = cat === 'all' || p.category === cat;
+      const qOk = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || String(p.sku).toLowerCase().includes(q);
+      return catOk && qOk;
+    });
+  }
+
+  function buildWhatsAppMessage(product){
+    return `Hola, me interesa:\n${product.name}\nPrecio: ${money(product.price)}\nCategoría: ${product.category}`;
+  }
+
+  function money(n){
+    try{ return Number(n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'}); }
+    catch(e){ return `$${Number(n||0).toFixed(2)}`; }
+  }
+
   function renderPreview(){
+    const products = getTPVProducts();
+    const categories = getCategoryList(products);
+    if(!categories.includes(state.ui.selectedCategory)) state.ui.selectedCategory = 'all';
+
     refs.preview.innerHTML = `
       <div class="page2-site">
         ${renderHeader()}
         ${renderHero()}
-        ${renderCategorias()}
-        ${renderDestacados()}
+        ${renderCategorias(categories)}
+        ${renderDestacados(products)}
+        ${renderCatalogo(products, categories)}
         ${renderContacto()}
         ${renderFooter()}
       </div>
@@ -187,7 +276,7 @@
         </div>
         <div class="page2-siteActions">
           <a href="#contacto" class="page2-btnGhost">Contacto</a>
-          <a href="#" class="page2-btnPrimary">Entrenar ahora</a>
+          <a href="#" class="page2-btnPrimary" data-page2-cta="wa" data-page2-msg="Hola, me interesa información del gimnasio">Entrenar ahora</a>
         </div>
       </header>
     `;
@@ -204,36 +293,82 @@
       </section>
     `;
   }
-  function renderCategorias(){
-    const cats = state.categorias.items || [];
+  function renderCategorias(categories){
     return `
       <section class="page2-section">
-        <h4>Categorías base</h4>
+        <div class="page2-sectionHead">
+          <h4>Categorías</h4>
+          <span class="page2-muted">Filtra el catálogo por tipo de producto</span>
+        </div>
         <div class="page2-chipRow">
-          ${cats.map(cat=>`<span class="page2-chip">${escapeHtml(cat)}</span>`).join('') || '<span class="page2-chip">Sin categorías</span>'}
+          <button class="page2-chip ${state.ui.selectedCategory==='all'?'active':''}" type="button" data-page2-category="all">Todo</button>
+          ${categories.map(cat=>`<button class="page2-chip ${state.ui.selectedCategory===cat?'active':''}" type="button" data-page2-category="${escapeAttr(cat)}">${escapeHtml(cat)}</button>`).join('')}
         </div>
       </section>
     `;
   }
-  function renderDestacados(){
-    const cards = [
-      {title:'Productos destacados', text:`Límite actual: ${Number(state.catalogo.featuredLimit||0)} productos.`},
-      {title:'Catálogo visible', text:`Límite actual: ${Number(state.catalogo.catalogLimit||0)} productos.`},
-      {title: state.promociones.title || 'Promoción activa', text: state.promociones.text || 'Configura aquí tus campañas principales.'},
-    ];
+  function renderDestacados(products){
+    const featured = products.slice(0, Number(state.catalogo.featuredLimit||6));
     return `
       <section class="page2-section">
-        <h4>Bloques preparados</h4>
-        <div class="page2-cards">
-          ${cards.map(card=>`<article class="page2-card"><h5>${escapeHtml(card.title)}</h5><p>${escapeHtml(card.text)}</p></article>`).join('')}
+        <div class="page2-sectionHead">
+          <h4>Productos destacados</h4>
+          <span class="page2-muted">Conectados al catálogo real de la TPV</span>
+        </div>
+        <div class="page2-productGrid page2-productGrid--featured">
+          ${featured.length ? featured.map(renderProductCard).join('') : '<div class="page2-empty">No hay productos en el catálogo todavía.</div>'}
         </div>
       </section>
     `;
   }
+
+  function renderCatalogo(products){
+    const filtered = filterProducts(products).slice(0, Number(state.catalogo.catalogLimit||8));
+    return `
+      <section class="page2-section">
+        <div class="page2-sectionHead">
+          <h4>Catálogo</h4>
+          <span class="page2-muted">Vista base conectada al inventario</span>
+        </div>
+        <div class="page2-toolbar">
+          <input class="input page2-search" data-page2-search placeholder="Buscar producto por nombre, categoría o SKU" value="${escapeAttr(state.ui.search || '')}">
+          <div class="page2-toolbarMeta">Mostrando ${filtered.length} de ${products.length} producto(s)</div>
+        </div>
+        <div class="page2-productGrid">
+          ${filtered.length ? filtered.map(renderProductCard).join('') : '<div class="page2-empty">No hay resultados con este filtro.</div>'}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderProductCard(product){
+    const img = product.image
+      ? `<img class="page2-productImg" src="${escapeAttr(product.image)}" alt="${escapeAttr(product.name)}">`
+      : `<div class="page2-productImg page2-productFallback">${initials(product.name)}</div>`;
+    return `
+      <article class="page2-productCard">
+        ${img}
+        <div class="page2-productBody">
+          <div class="page2-productCategory">${escapeHtml(product.category)}</div>
+          <h5>${escapeHtml(product.name)}</h5>
+          <div class="page2-productMeta">Stock: ${product.stock}</div>
+          <div class="page2-productPrice">${money(product.price)}</div>
+          <div class="page2-productActions">
+            <button class="page2-btnMini" type="button" data-page2-cta="ver">Ver</button>
+            <button class="page2-btnMini primary" type="button" data-page2-cta="wa" data-page2-msg="${escapeAttr(buildWhatsAppMessage(product))}">WhatsApp</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
   function renderContacto(){
     return `
       <section class="page2-section" id="contacto">
-        <h4>Contacto</h4>
+        <div class="page2-sectionHead">
+          <h4>Contacto</h4>
+          <span class="page2-muted">Base preparada para enlaces y acciones</span>
+        </div>
         <div class="page2-contact">
           <div class="page2-contactItem"><strong>WhatsApp</strong><span>${escapeHtml(state.contacto.whatsapp || 'Pendiente')}</span></div>
           <div class="page2-contactItem"><strong>Teléfono</strong><span>${escapeHtml(state.contacto.phone || 'Pendiente')}</span></div>
@@ -250,7 +385,7 @@
     return arr.join(' · ') || 'Pendiente';
   }
   function renderFooter(){
-    return `<footer class="page2-footer">Página 2.0 base modular · Dinamita POS</footer>`;
+    return `<footer class="page2-footer">Página 2.0 modular · V24R.2 catálogo real base · Dinamita POS</footer>`;
   }
 
   function escapeHtml(v){ return String(v??'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s])); }

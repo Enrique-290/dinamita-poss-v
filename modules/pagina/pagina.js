@@ -96,6 +96,8 @@
     instagram: document.getElementById('page2Instagram'),
     exportHtmlBtn: document.getElementById('page2ExportHtmlBtn'),
     exportJsonBtn: document.getElementById('page2ExportJsonBtn'),
+    importJsonBtn: document.getElementById('page2ImportJsonBtn'),
+    importJsonFile: document.getElementById('page2ImportJsonFile'),
   };
 
   function bindTabs(){
@@ -168,6 +170,33 @@
       }catch(e){
         console.error(e);
         alert('No se pudo generar el JSON.');
+      }
+    });
+
+    refs.importJsonBtn?.addEventListener('click', ()=>{
+      refs.importJsonFile?.click();
+    });
+
+    refs.importJsonFile?.addEventListener('change', async (e)=>{
+      try{
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        const text = await file.text();
+        const payload = JSON.parse(text);
+        const importedState = payload && typeof payload === 'object' ? (payload.state || payload) : null;
+        if(!importedState || typeof importedState !== 'object'){
+          throw new Error('JSON inválido');
+        }
+        state = mergeDeep(clone(DEFAULT_STATE), importedState);
+        hydrate();
+        renderPreview();
+        saveState();
+        alert('JSON importado correctamente en Página 2.0.');
+      }catch(err){
+        console.error(err);
+        alert('No se pudo importar el JSON. Verifica que sea un respaldo válido de Página 2.0.');
+      }finally{
+        if(refs.importJsonFile) refs.importJsonFile.value = '';
       }
     });
 
